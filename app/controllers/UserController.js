@@ -57,6 +57,36 @@ module.exports.addToMyOrders = (req, res) => {
 		});
 };
 
+module.exports.searchDish = (req, res) => {
+	const search = req.query.q;
+	RestaurantModel.find()
+		.populate("dishes")
+		.exec()
+		.then((restaurants) => {
+			let dishes = [];
+			for (const restaurant of restaurants) {
+				restaurant.dishes.forEach(({ _id, image, name, price }) => {
+					if (name.search(new RegExp(search, "gi")) !== -1) {
+							dishes.push({
+							_id,
+							image,
+							name,
+							price,
+							restaurantId: restaurant["_id"],
+							restaurantName: restaurant.name,
+							restaurantLocation: restaurant.location
+						});
+					}
+				});
+			}
+			return res.status(200).json({ dishes });
+		})
+		.catch((err) => {
+			displayError(err);
+			return res.status(500).json({ message: "Server Error!" });
+		});
+};
+
 module.exports.viewMyOrders = (req, res) => {
 	const limit = Number.parseInt(req.query.limit);
 	const page = Number.parseInt(req.query.page);

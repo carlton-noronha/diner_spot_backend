@@ -6,6 +6,11 @@ module.exports = (app) => {
 		authMiddleware.verifyToken,
 		UserController.viewDishes
 	);
+	app.get(
+		"/api/searchDish",
+		authMiddleware.verifyToken,
+		UserController.searchDish
+	);
 	app.post(
 		"/api/addToMyOrders",
 		authMiddleware.verifyToken,
