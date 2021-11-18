@@ -37,9 +37,19 @@ module.exports = (app) => {
 		[authMiddleware.verifyToken, authMiddleware.isAdmin],
 		AdminController.viewOrders
 	);
+	app.get(
+		"/api/viewPendingOrders",
+		[authMiddleware.verifyToken, authMiddleware.isAdmin],
+		AdminController.viewPendingOrders
+	);
 	app.delete(
 		"/api/removeOrder",
 		[authMiddleware.verifyToken, authMiddleware.isAdmin],
 		AdminController.removeOrder
+	);
+	app.post(
+		"/api/approveOrder",
+		[authMiddleware.verifyToken, authMiddleware.isAdmin],
+		AdminController.approveOrder
 	);
 };

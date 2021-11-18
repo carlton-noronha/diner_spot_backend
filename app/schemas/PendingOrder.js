@@ -23,7 +23,7 @@ const PendingOrder = new Schema(
 			required: true,
 		},
 	},
-	{ collection: "Order" }
+	{ collection: "PendingOrder" }
 );
 
 module.exports = PendingOrder;

@@ -3,6 +3,7 @@ const {
 	DishModel,
 	OrderModel,
 	CustomerModel,
+	PendingOrderModel,
 } = require("../models");
 
 const displayError = (err) => {
@@ -10,7 +11,7 @@ const displayError = (err) => {
 };
 
 module.exports.viewRestaurants = (req, res) => {
-	RestaurantModel.find({}, {dishes: 0, cuisineType: 0})
+	RestaurantModel.find({}, { dishes: 0, cuisineType: 0 })
 		.exec()
 		.then((data) => {
 			return res.status(200).json({ restaurants: data });
@@ -41,7 +42,7 @@ module.exports.addRestaurant = (req, res) => {
 module.exports.removeRestaurant = (req, res) => {
 	/*
 	1. Delete from Customer's ordered list
-	2. Delete all orders placed at that restaurant
+	2. Delete pending and all orders placed at that restaurant
 	2. Delete all dishes
 	3. Delete Restaurant
 	*/
@@ -64,6 +65,10 @@ module.exports.removeRestaurant = (req, res) => {
 				"Removed orders from customers of restaurant to be deleted",
 				data
 			);
+			return PendingOrderModel.deleteMany({ restaurantId: id }).exec();
+		})
+		.then((data) => {
+			console.log("Deleted pending orders", data);
 			return OrderModel.deleteMany({ restaurantId: id }).exec();
 		})
 		.then((data) => {
@@ -97,13 +102,16 @@ module.exports.removeRestaurant = (req, res) => {
 
 module.exports.getDishes = (req, res) => {
 	const restaurantId = req.query.id;
-	RestaurantModel.findById(restaurantId, { dishes: 1 })
+	RestaurantModel.findById(restaurantId, { name: 1, location: 1, dishes: 1 })
 		.populate("dishes")
 		.exec()
 		.then((restaurant) => {
-			return res
-				.status(200)
-				.json({ restaurantId: restaurant["_id"], dishes: restaurant.dishes });
+			return res.status(200).json({
+				restaurantId: restaurant["_id"],
+				restaurantName: restaurant["name"],
+				restaurantLocation: restaurant["location"],
+				dishes: restaurant.dishes,
+			});
 		})
 		.catch((err) => {
 			displayError(err);
@@ -127,9 +135,10 @@ module.exports.addDish = (req, res) => {
 		})
 		.then((data) => {
 			console.log("New dish added to restaurant", data);
-			return res
-				.status(200)
-				.json({ data, message: "New dish added to restaurant" });
+			return res.status(200).json({
+				data: data.dishes[data.dishes.length - 1],
+				message: "New dish added to restaurant",
+			});
 		})
 		.catch((err) => {
 			displayError(err);
@@ -164,6 +173,10 @@ module.exports.removeDish = (req, res) => {
 		})
 		.then((data) => {
 			console.log("Deleted orders from Customers orders", data);
+			return PendingOrderModel.deleteMany({ dishId }).exec();
+		})
+		.then((data) => {
+			console.log("Deleted from pending orders", data);
 			return OrderModel.deleteMany({ dishId }).exec();
 		})
 		.then((data) => {
@@ -197,28 +210,64 @@ module.exports.viewOrders = (req, res) => {
 		});
 };
 
+module.exports.viewPendingOrders = (req, res) => {
+	/*
+	1. Find all orders
+	*/
+	PendingOrderModel.find({})
+		.exec()
+		.then((data) => {
+			return res.status(200).json({ orders: data, message: "Success" });
+		})
+		.catch((err) => {
+			displayError(err);
+			return res.status(500).json({ message: "Server Error" });
+		});
+};
+
 module.exports.removeOrder = (req, res) => {
 	/*
-	1. Find customer id from order id
-	2. Delete from order list of customer
-	3. Delete order
+	1. Find in pending orders and delete
 	*/
 	const orderId = req.body.orderId;
-	OrderModel.findById(orderId, { customerId: 1 })
+	PendingOrderModel.findByIdAndDelete(orderId)
 		.exec()
-		.then((customer) => {
-			console.log("Customer who placed order", customer);
-			return CustomerModel.findByIdAndUpdate(customer.customerId, {
-				$pull: { orders: orderId },
-			}).exec();
-		})
-		.then((data) => {
-			console.log("Deleted order from customer", data);
-			return OrderModel.findByIdAndDelete(orderId).exec();
-		})
 		.then((data) => {
 			console.log("Deleted order", data);
 			return res.status(200).json({ message: "Deleted order" });
+		})
+		.catch((err) => {
+			displayError(err);
+			return res.status(500).json({ message: "Server Error" });
+		});
+};
+
+module.exports.approveOrder = (req, res) => {
+	const orderId = req.body.orderId;
+	PendingOrderModel.findById(orderId)
+		.exec()
+		.then((order) => {
+			const buildOrder = {
+				customerId: order.customerId,
+				restaurantId: order.restaurantId,
+				dishId: order.dishId,
+				amountPaid: order.amountPaid,
+			};
+			return new OrderModel(buildOrder).save();
+		})
+		.then((order) => {
+			console.log("Order approved", order);
+			return CustomerModel.findByIdAndUpdate(order["customerId"], {
+				$push: { orders: order["_id"] },
+			}).exec();
+		})
+		.then((customer) => {
+			console.log("Order added to requested customers list", customer);
+			return PendingOrderModel.findByIdAndDelete(orderId).exec();
+		})
+		.then((order) => {
+			console.log("Deleted from pending order", order);
+			return res.status(200).json({ message: "Sucess" });
 		})
 		.catch((err) => {
 			displayError(err);

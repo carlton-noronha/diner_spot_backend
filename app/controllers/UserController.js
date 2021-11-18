@@ -2,9 +2,11 @@ const {
 	CustomerModel,
 	RestaurantModel,
 	OrderModel,
+	PendingOrderModel,
 	DishModel,
 } = require("../models");
-
+require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 const displayError = (err) => console.log(`Error: ${err}`);
 
 module.exports.viewDishes = (req, res) => {
@@ -25,7 +27,7 @@ module.exports.viewDishes = (req, res) => {
 						price,
 						restaurantId: restaurant["_id"],
 						restaurantName: restaurant.name,
-						restaurantLocation: restaurant.location
+						restaurantLocation: restaurant.location,
 					});
 				});
 			}
@@ -40,15 +42,10 @@ module.exports.viewDishes = (req, res) => {
 
 module.exports.addToMyOrders = (req, res) => {
 	const { customerId, restaurantId, dishId, amountPaid } = req.body;
-	OrderModel({ customerId, restaurantId, dishId, amountPaid })
+	PendingOrderModel({ customerId, restaurantId, dishId, amountPaid })
 		.save()
-		.then((order) => {
-			return CustomerModel.findByIdAndUpdate(customerId, {
-				$push: { orders: order["_id"] },
-			}).exec();
-		})
 		.then((data) => {
-			console.log("Add to your orders", data);
+			console.log("Add to pending orders waiting for admin approval", data);
 			return res.status(200).json({ message: "Sucess!" });
 		})
 		.catch((err) => {
@@ -67,14 +64,14 @@ module.exports.searchDish = (req, res) => {
 			for (const restaurant of restaurants) {
 				restaurant.dishes.forEach(({ _id, image, name, price }) => {
 					if (name.search(new RegExp(search, "gi")) !== -1) {
-							dishes.push({
+						dishes.push({
 							_id,
 							image,
 							name,
 							price,
 							restaurantId: restaurant["_id"],
 							restaurantName: restaurant.name,
-							restaurantLocation: restaurant.location
+							restaurantLocation: restaurant.location,
 						});
 					}
 				});
@@ -97,7 +94,12 @@ module.exports.viewMyOrders = (req, res) => {
 		.then((customer) => {
 			const promises = [];
 			for (const orderId of customer.orders) {
-				promises.push(OrderModel.findById(orderId).populate("dishId").populate("restaurantId").exec());
+				promises.push(
+					OrderModel.findById(orderId)
+						.populate("dishId")
+						.populate("restaurantId")
+						.exec()
+				);
 			}
 			return Promise.all(promises);
 		})
@@ -128,5 +130,31 @@ module.exports.dishesCount = async (req, res) => {
 		return res.status(200).json({ count });
 	} catch (err) {
 		return res.status(500).json({ message: "Server Error!" });
+	}
+};
+
+module.exports.makePayment = async (req, res) => {
+	try {
+		const session = await stripe.checkout.sessions.create({
+			payment_method_types: ["card"],
+			mode: "payment",
+			line_items: req.body.dishes.map((item) => {
+				return {
+					price_data: {
+						currency: "INR",
+						product_data: {
+							name: item.name,
+						},
+						unit_amount: item.price / 0.01,
+					},
+					quantity: 1,
+				};
+			}),
+			success_url: `${process.env.CLIENT_URL}/success`,
+			cancel_url: `${process.env.CLIENT_URL}/failed`,
+		});
+		res.json({ url: session.url });
+	} catch (err) {
+		return res.status(500).json({ message: err.message });
 	}
 };

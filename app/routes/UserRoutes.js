@@ -31,4 +31,9 @@ module.exports = (app) => {
 		authMiddleware.verifyToken,
 		UserController.dishesCount
 	);
+	app.post(
+		"/api/payment-session",
+		authMiddleware.verifyToken,
+		UserController.makePayment
+	);
 };
