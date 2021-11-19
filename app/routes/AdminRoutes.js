@@ -12,6 +12,11 @@ module.exports = (app) => {
 		[authMiddleware.verifyToken, authMiddleware.isAdmin],
 		AdminController.addRestaurant
 	);
+	app.put(
+		"/api/updateRestaurant",
+		[authMiddleware.verifyToken, authMiddleware.isAdmin],
+		AdminController.updateRestaurant
+	);
 	app.delete(
 		"/api/removeRestaurant",
 		[authMiddleware.verifyToken, authMiddleware.isAdmin],

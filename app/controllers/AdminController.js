@@ -39,6 +39,20 @@ module.exports.addRestaurant = (req, res) => {
 		});
 };
 
+module.exports.updateRestaurant = (req, res) => {
+	RestaurantModel.findByIdAndUpdate(req.body.id, req.body.restaurant)
+		.exec()
+		.then((data) => {
+			return res
+				.status(200)
+				.json({ data, message: "Restaurant added to database!" });
+		})
+		.catch((err) => {
+			displayError(err);
+			return res.status(500).json({ message: "Server Error" });
+		});
+};
+
 module.exports.removeRestaurant = (req, res) => {
 	/*
 	1. Delete from Customer's ordered list
@@ -200,6 +214,9 @@ module.exports.viewOrders = (req, res) => {
 	1. Find all orders
 	*/
 	OrderModel.find({})
+		.populate("restaurantId")
+		.populate("dishId")
+		.populate("customerId")
 		.exec()
 		.then((data) => {
 			return res.status(200).json({ orders: data, message: "Success" });
@@ -215,6 +232,9 @@ module.exports.viewPendingOrders = (req, res) => {
 	1. Find all orders
 	*/
 	PendingOrderModel.find({})
+		.populate("restaurantId")
+		.populate("dishId")
+		.populate("customerId")
 		.exec()
 		.then((data) => {
 			return res.status(200).json({ orders: data, message: "Success" });
