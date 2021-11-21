@@ -271,6 +271,7 @@ module.exports.approveOrder = (req, res) => {
 				customerId: order.customerId,
 				restaurantId: order.restaurantId,
 				dishId: order.dishId,
+				quantity: order.quantity,
 				amountPaid: order.amountPaid,
 			};
 			return new OrderModel(buildOrder).save();

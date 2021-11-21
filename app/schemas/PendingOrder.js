@@ -18,6 +18,10 @@ const PendingOrder = new Schema(
 			ref: "Dish",
 			required: true,
 		},
+		quantity: {
+			type: Schema.Types.Number,
+			required: true,
+		},
 		amountPaid: {
 			type: Schema.Types.Number,
 			required: true,

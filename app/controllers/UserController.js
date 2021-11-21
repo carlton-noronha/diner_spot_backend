@@ -12,11 +12,12 @@ const displayError = (err) => console.log(`Error: ${err}`);
 module.exports.viewDishes = (req, res) => {
 	const limit = Number.parseInt(req.query.limit);
 	const page = Number.parseInt(req.query.page);
-
+	console.log(limit, page);
 	RestaurantModel.find()
 		.populate("dishes")
 		.exec()
 		.then((restaurants) => {
+			console.log(restaurants.length);
 			let dishes = [];
 			for (const restaurant of restaurants) {
 				restaurant.dishes.forEach(({ _id, image, name, price }) => {
@@ -41,8 +42,8 @@ module.exports.viewDishes = (req, res) => {
 };
 
 module.exports.addToMyOrders = (req, res) => {
-	const { customerId, restaurantId, dishId, amountPaid } = req.body;
-	PendingOrderModel({ customerId, restaurantId, dishId, amountPaid })
+	const { customerId, restaurantId, dishId, quantity, amountPaid } = req.body;
+	PendingOrderModel({ customerId, restaurantId, dishId, quantity, amountPaid })
 		.save()
 		.then((data) => {
 			console.log("Add to pending orders waiting for admin approval", data);
@@ -60,7 +61,7 @@ module.exports.searchDish = (req, res) => {
 		.populate("dishes")
 		.exec()
 		.then((restaurants) => {
-			let dishes = [];
+			const dishes = [];
 			for (const restaurant of restaurants) {
 				restaurant.dishes.forEach(({ _id, image, name, price }) => {
 					if (name.search(new RegExp(search, "gi")) !== -1) {
@@ -147,7 +148,7 @@ module.exports.makePayment = async (req, res) => {
 						},
 						unit_amount: item.price / 0.01,
 					},
-					quantity: 1,
+					quantity: item.quantity,
 				};
 			}),
 			success_url: `${process.env.CLIENT_URL}/success`,
