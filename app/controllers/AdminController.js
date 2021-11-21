@@ -11,7 +11,7 @@ const displayError = (err) => {
 };
 
 module.exports.viewRestaurants = (req, res) => {
-	RestaurantModel.find({}, { dishes: 0, cuisineType: 0 })
+	RestaurantModel.find({})
 		.exec()
 		.then((data) => {
 			return res.status(200).json({ restaurants: data });
