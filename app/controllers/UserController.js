@@ -12,7 +12,7 @@ const displayError = (err) => console.log(`Error: ${err}`);
 module.exports.viewDishes = (req, res) => {
 	const limit = Number.parseInt(req.query.limit);
 	const page = Number.parseInt(req.query.page);
-	console.log(limit, page);
+
 	RestaurantModel.find()
 		.populate("dishes")
 		.exec()
