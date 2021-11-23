@@ -1,13 +1,12 @@
 {
-	"name": "backend-lms",
+	"name": "diner_stop_backend",
 	"version": "1.0.0",
-	"description": "Backend For Library Management System",
+	"description": "Backend For Diner Stop",
 	"main": "server.js",
 	"scripts": {
 		"server": "nodemon server.js"
 	},
 	"keywords": [
-		"library-management-system",
 		"mongoose",
 		"express",
 		"node"

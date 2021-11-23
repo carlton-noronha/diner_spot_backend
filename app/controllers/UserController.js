@@ -29,6 +29,8 @@ module.exports.viewDishes = (req, res) => {
 						restaurantId: restaurant["_id"],
 						restaurantName: restaurant.name,
 						restaurantLocation: restaurant.location,
+						restaurantOpensAt: restaurant.opensAt,
+						restaurantClosesAt: restaurant.closesAt,
 					});
 				});
 			}
